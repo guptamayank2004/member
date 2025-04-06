@@ -1,0 +1,14 @@
+server:
+  servlet:
+    context-path: /memberapp
+spring:
+  data:
+    mongodb:
+      uri: mongodb://memberadmin:memberadmin@127.0.0.1:27017
+      database: member
+  application:
+    name: memberapp
+  jpa:
+    show-sql: true
+  jta:
+    enabled: true

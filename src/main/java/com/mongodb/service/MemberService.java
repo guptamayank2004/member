@@ -1,12 +1,14 @@
 package com.mongodb.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.mongodb.dao.MemberRepository;
@@ -35,20 +37,19 @@ public class MemberService {
 		return savedMember.getId();
 	}
 
-	public Optional<MemberDto> findByName(String name) {
-		MemberDto memberDto = MemberDto.builder().build();
-		Optional<MemberModel> memberFetched = Optional.ofNullable(memberRepository.findByName(name));
-		memberFetched.ifPresent(memberModel -> BeanUtils.copyProperties(memberModel, memberDto));
-		return Optional.ofNullable(memberDto);
-	}
+	public Optional<List<MemberDto>> getMembers(Map<String, String> requestParams) {
+		List<MemberModel> memberModels;
+		if (requestParams.isEmpty()) {
+			memberModels = memberRepository.findAll(Sort.by("name").ascending());
+		} else {
+			MemberModel memberModelExample = MemberModel.builder().build();
+			if (requestParams.containsKey("name")) {
+				memberModelExample.setName(requestParams.get("name"));
+			}
+			memberModels = memberRepository.findAll(Example.of(memberModelExample), Sort.by("name").ascending());
+		}
 
-	public Optional<List<MemberDto>> getAllMembers() {
-		List<MemberModel> allByOrderByNameAsc = memberRepository.findAllByOrderByNameAsc();
-		List<MemberDto> memberDtos = allByOrderByNameAsc.stream().map(memberModel -> {
-			MemberDto memberDto = MemberDto.builder().build();
-			BeanUtils.copyProperties(memberModel, memberDto);
-			return memberDto;
-		}).collect(Collectors.toList());
+		List<MemberDto> memberDtos = memberModels.stream().map(this::convertToDto).collect(Collectors.toList());
 		return Optional.ofNullable(memberDtos);
 	}
 
@@ -62,5 +63,11 @@ public class MemberService {
 
 	public boolean emailAlreadyExists(String email) {
 		return memberRepository.exists(Example.of(MemberModel.builder().email(email).build()));
+	}
+
+	private MemberDto convertToDto(MemberModel memberModel) {
+		MemberDto memberDto = MemberDto.builder().build();
+		BeanUtils.copyProperties(memberModel, memberDto);
+		return memberDto;
 	}
 }

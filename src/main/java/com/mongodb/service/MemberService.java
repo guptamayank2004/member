@@ -45,8 +45,10 @@ public class MemberService {
 			MemberModel memberModelExample = MemberModel.builder().build();
 			if (requestParams.containsKey("name")) {
 				memberModelExample.setName(requestParams.get("name"));
+				memberModels = memberRepository.findAll(Example.of(memberModelExample), Sort.by("name").ascending());
+			} else {
+				memberModels = memberRepository.findAll(Sort.by("name").ascending());
 			}
-			memberModels = memberRepository.findAll(Example.of(memberModelExample), Sort.by("name").ascending());
 		}
 
 		List<MemberDto> memberDtos = memberModels.stream().map(this::convertToDto).collect(Collectors.toList());

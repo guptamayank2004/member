@@ -24,8 +24,7 @@ import com.mongodb.service.MemberService;
 import jakarta.validation.Valid;
 
 @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = "*", methods = { RequestMethod.GET, RequestMethod.POST,
-		RequestMethod.OPTIONS,
-		RequestMethod.HEAD }, allowCredentials = "true")
+		RequestMethod.OPTIONS, RequestMethod.HEAD }, allowCredentials = "true")
 @RestController
 @Validated
 @RequestMapping("/members")
@@ -53,7 +52,7 @@ public class MemberController {
 
 	// Create a new member
 	@PostMapping(consumes = "application/json", produces = "application/json")
-	public ResponseEntity<String> createMember(@RequestBody @Valid MemberDto member) {
+	public ResponseEntity<String> saveMember(@RequestBody @Valid MemberDto member) {
 		String memberId = memberService.saveMember(member);
 		return new ResponseEntity<>(memberId, HttpStatus.CREATED);
 	}

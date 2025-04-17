@@ -64,7 +64,7 @@ public class MemberControllerTest {
 	public void testCreateMember() {
 		when(memberService.saveMember(memberDto)).thenReturn("1");
 
-		ResponseEntity<String> response = memberController.createMember(memberDto);
+		ResponseEntity<String> response = memberController.saveMember(memberDto);
 
 		assertEquals(HttpStatus.CREATED, response.getStatusCode());
 		assertEquals("1", response.getBody());

@@ -1,12 +1,18 @@
 package unit.com.mongodb.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -72,12 +78,58 @@ public class MemberServiceTest {
 	}
 
 	@Test
-	public void testGetMembers() {
-		when(memberRepository.findAll(Sort.by("name").ascending())).thenReturn(Collections.singletonList(memberModel));
+	void testGetMembers_EmptyRequestParams() {
+		List<MemberModel> mockMembers = Arrays.asList(MemberModel.builder().id("1").name("John").build(),
+				MemberModel.builder().id("2").name("Jane").build());
+		when(memberRepository.findAll(Sort.by("name").ascending())).thenReturn(mockMembers);
 
-		Optional<List<MemberDto>> members = memberService.getMembers(Collections.emptyMap());
-		assertEquals(1, members.get().size());
-		assertEquals("John Doe", members.get().get(0).getName());
+		Optional<List<MemberDto>> result = memberService.getMembers(Collections.emptyMap());
+
+		assertTrue(result.isPresent());
+		assertEquals(2, result.get().size());
+		assertEquals("John", result.get().get(0).getName());
+		assertEquals("Jane", result.get().get(1).getName());
+	}
+
+	@Test
+	void testGetMembers_WithNameFilter() {
+		Map<String, String> requestParams = new HashMap<>();
+		requestParams.put("name", "John");
+
+		List<MemberModel> mockMembers = Collections.singletonList(MemberModel.builder().id("1").name("John").build());
+		when(memberRepository.findAll(eq(Example.of(MemberModel.builder().name("John").build())), any(Sort.class)))
+				.thenReturn(mockMembers);
+
+		Optional<List<MemberDto>> result = memberService.getMembers(requestParams);
+
+		assertTrue(result.isPresent());
+		assertEquals(1, result.get().size());
+		assertEquals("John", result.get().get(0).getName());
+	}
+
+	@Test
+	void testGetMembers_WithOtherFilter() {
+		Map<String, String> requestParams = new HashMap<>();
+		requestParams.put("phone", "123456789");
+
+		List<MemberModel> mockMembers = Arrays.asList(MemberModel.builder().id("1").name("John").build(),
+				MemberModel.builder().id("2").name("Jane").build());
+		when(memberRepository.findAll(Sort.by("name").ascending())).thenReturn(mockMembers);
+
+		Optional<List<MemberDto>> result = memberService.getMembers(requestParams);
+
+		assertTrue(result.isPresent());
+		assertEquals(2, result.get().size());
+	}
+
+	@Test
+	void testGetMembers_NoMembersFound() {
+		when(memberRepository.findAll(Sort.by("name").ascending())).thenReturn(Collections.emptyList());
+
+		Optional<List<MemberDto>> result = memberService.getMembers(Collections.emptyMap());
+
+		assertTrue(result.isPresent());
+		assertTrue(result.get().isEmpty());
 	}
 
 	@Test
@@ -95,4 +147,38 @@ public class MemberServiceTest {
 		boolean exists = memberService.emailAlreadyExists("john.doe@example.com");
 		assertEquals(true, exists);
 	}
+
+	@Test
+	public void testSaveMember_RepositoryFailure() {
+		when(memberRepository.save(any(MemberModel.class))).thenThrow(new RuntimeException("Database error"));
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+			memberService.saveMember(memberDto);
+		});
+		assertEquals("Database error", exception.getMessage());
+	}
+
+	@Test
+	public void testGetMembers_EmptyResult() {
+		when(memberRepository.findAll(Sort.by("name").ascending())).thenReturn(Collections.emptyList());
+
+		Optional<List<MemberDto>> members = memberService.getMembers(Collections.emptyMap());
+		assertEquals(true, members.get().isEmpty());
+	}
+
+	@Test
+	public void testFindById_NotFound() {
+		when(memberRepository.findById("1")).thenReturn(Optional.empty());
+
+		Optional<MemberDto> foundMember = memberService.findById("1");
+		assertEquals(null, foundMember.get().getId());
+	}
+
+	@Test
+	public void testEmailAlreadyExists_NullEmail() {
+		assertDoesNotThrow(() -> {
+			memberService.emailAlreadyExists(null);
+		});
+	}
+
 }
